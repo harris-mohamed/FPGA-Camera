@@ -1,0 +1,24 @@
+
+State Machine - |DE2_CCD|I2C_CCD_Config:u7|mSetup_ST
+Name mSetup_ST.0000 mSetup_ST.0010 mSetup_ST.0001 
+mSetup_ST.0000 0 0 0 
+mSetup_ST.0001 1 0 1 
+mSetup_ST.0010 1 1 0 
+
+State Machine - |DE2_CCD|fsm:fsm|State
+Name State.Track State.Click2 State.Click1_1 State.Click1 State.Cal State.SetCam 
+State.SetCam 0 0 0 0 0 0 
+State.Cal 0 0 0 0 1 1 
+State.Click1 0 0 0 1 0 1 
+State.Click1_1 0 0 1 0 0 1 
+State.Click2 0 1 0 0 0 1 
+State.Track 1 0 0 0 0 1 
+
+State Machine - |DE2_CCD|on_chip_fsm:soc|on_chip_fsm_nios2_gen2_0:nios2_gen2_0|on_chip_fsm_nios2_gen2_0_cpu:cpu|on_chip_fsm_nios2_gen2_0_cpu_nios2_oci:the_on_chip_fsm_nios2_gen2_0_cpu_nios2_oci|on_chip_fsm_nios2_gen2_0_cpu_debug_slave_wrapper:the_on_chip_fsm_nios2_gen2_0_cpu_debug_slave_wrapper|on_chip_fsm_nios2_gen2_0_cpu_debug_slave_tck:the_on_chip_fsm_nios2_gen2_0_cpu_debug_slave_tck|DRsize
+Name DRsize.101 DRsize.100 DRsize.011 DRsize.010 DRsize.001 DRsize.000 
+DRsize.000 0 0 0 0 0 0 
+DRsize.001 0 0 0 0 1 1 
+DRsize.010 0 0 0 1 0 1 
+DRsize.011 0 0 1 0 0 1 
+DRsize.100 0 1 0 0 0 1 
+DRsize.101 1 0 0 0 0 1 
