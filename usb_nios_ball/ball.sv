@@ -11,14 +11,13 @@
 		 Last Modified: May 16, 2019
    ---------------------------------------------------------- */
 
-
 module  ball ( input         Clk,                // 50 MHz clock
                              Reset,              // Active-high reset signal
                              frame_clk,          // The clock indicating a new frame (~60Hz)
                input [9:0]   DrawX, DrawY,       // Current pixel coordinates
                output logic  is_ball,            // Whether current pixel belongs to ball or background
-					input logic [9:0] mousex,
-					input logic [9:0] mousey
+					input logic [9:0] mousex,			 // Current mouse X coordinate
+					input logic [9:0] mousey			 // Current mouse Y coordinate
               );
     
     parameter [9:0] Ball_X_Center = 10'd320;  // Center position on the X axis
@@ -34,7 +33,6 @@ module  ball ( input         Clk,                // 50 MHz clock
     logic [9:0] Ball_X_Pos, Ball_Y_Pos;
     logic [9:0] Ball_X_Pos_in, Ball_Y_Pos_in;
     
-    //////// Do not modify the always_ff blocks. ////////
     // Detect rising edge of frame_clk
     logic frame_clk_delayed, frame_clk_rising_edge;
     always_ff @ (posedge Clk) begin
@@ -55,9 +53,7 @@ module  ball ( input         Clk,                // 50 MHz clock
             Ball_Y_Pos <= Ball_Y_Pos_in;
         end
     end
-    //////// Do not modify the always_ff blocks. ////////
     
-    // You need to modify always_comb block.
     always_comb
     begin
         // By default, keep motion and position unchanged
@@ -73,8 +69,6 @@ module  ball ( input         Clk,                // 50 MHz clock
     end
     
     // Compute whether the pixel corresponds to ball or background
-    /* Since the multiplicants are required to be signed, we have to first cast them
-       from logic to int (signed by default) before they are multiplied. */
     int DistX, DistY, Size;
     assign DistX = DrawX - Ball_X_Pos;
     assign DistY = DrawY - Ball_Y_Pos;
@@ -84,9 +78,6 @@ module  ball ( input         Clk,                // 50 MHz clock
             is_ball = 1'b1;
         else
             is_ball = 1'b0;
-        /* The ball's (pixelated) circle is generated using the standard circle formula.  Note that while 
-           the single line is quite powerful descriptively, it causes the synthesis tool to use up three
-           of the 12 available multipliers on the chip! */
     end
     
 endmodule

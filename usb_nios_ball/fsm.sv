@@ -126,6 +126,19 @@ module fsm
 endmodule
 
 
+/* ----------------------------------------------------------
+       register12 module
+		 
+		 Description:
+		 - 12 bit register
+		 
+		 Authors:
+       - Harris M
+		 - Neeloy C
+		 
+		 Last Modified: May 16, 2019
+   ---------------------------------------------------------- */
+
 module register12
 (
 	input logic CLK,

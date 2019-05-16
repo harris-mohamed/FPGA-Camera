@@ -34,14 +34,14 @@ module  color_mapper ( input              is_ball,            // Whether current
     // Assign color based on is_ball signal
     always_comb
     begin
-		  //white ball
+		  //white ball for mouse cursor
         if (is_ball == 1'b1 && SHOW_BALL == 1'b1) 
         begin
             Red = 10'hfff;
             Green = 10'hfff;
             Blue = 10'hfff;
         end
-		  //red dots for top and bottom
+		  //red dots for top and bottom of box
 		  else if ((SHOW_BOX == 1'b1) && ((DrawX == topx && DrawY == topy) || (DrawX == bottomx && DrawY == bottomy)))
 		  begin
 				Red = 10'hfff;

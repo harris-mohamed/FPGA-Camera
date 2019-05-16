@@ -146,7 +146,6 @@ output	[9:0]	VGA_B;   				//	VGA Blue[9:0]
 inout	[35:0]	GPIO_1;					//	GPIO Connection 1
 
 assign	SRAM_DQ		=	16'hzzzz;
-//assign	OTG_DATA	=	16'hzzzz;
 assign	I2C_SDAT	=	1'bz;
 
 //	CCD assignments
@@ -233,12 +232,15 @@ assign	CCD_PIXCLK	=	GPIO_1[10];
 assign	VGA_CTRL_CLK=	CCD_MCLK;
 assign	VGA_CLK		=	~CCD_MCLK;
 
+
+// 7 Segment Displays
 SEG7_LUT_8 			u5	(	.oSEG0(HEX0),.oSEG1(HEX1),
 							.oSEG2(HEX2),.oSEG3(HEX3),
 							.oSEG4(HEX4),.oSEG5(HEX5),
 							.oSEG6(HEX6),.oSEG7(HEX7),
 							.iDIG(hexValue) );
 
+							
 // LED assignments							
 assign	LEDR		=	SW;
 assign	LEDG[0]	=	calibrate_start;
@@ -248,9 +250,11 @@ assign	LEDG[5]	=	writetop;
 assign	LEDG[6]	=	writebottom;
 assign	LEDG[7]	=	ball_flag;
 
-// State machine assignments
+
+// State Machine Assignments
 always
 begin
+	// Box edge regster inputs are mouse coordinates
 	if (show_ball)
 	begin
 		TLXI = mousex;
@@ -258,6 +262,7 @@ begin
 		TLYI = mousey;
 		BRYI = mousey;
 	end
+	// Box edge register inputs are from tracking module
 	else if (show_box)
 	begin
 		TLXI = tracktlx;
@@ -265,6 +270,7 @@ begin
 		TLYI = tracktly;
 		BRYI = trackbry;
 	end
+	// Satisfies always_comb logic
 	else
 	begin
 		TLXI = 12'bx;
@@ -273,16 +279,20 @@ begin
 		BRYI = 12'bx;
 	end
 	
+	// Middle of box coordinates
 	midX = (brx[9:0] - tlx[9:0])/(10'd2);
 	midY = (bry[9:0] - tly[9:0])/(10'd2);
 	
+	// Hex shows exposure, red gain, and frame count when not calibrating
 	if (SHOW_GAIN)
 		hexValue = {SW[11:4],red_gain[7:0],Frame_Cont[15:0]};
+	//if calibrating, hex shows whether or not current object being hovered over will be tracked
 	else
 		hexValue = {topx[9:2], topy[9:2], bottomx[9:2], bottomy[9:2]};
 end
 
-// Camera module 
+
+// Camera module clock and data
 always@(posedge CLOCK_50)	CCD_MCLK	<=	~CCD_MCLK;
 
 always@(posedge CCD_PIXCLK)
@@ -292,6 +302,8 @@ begin
 	rCCD_FVAL	<=	CCD_FVAL;
 end
 
+
+// System on Chip Instantiation
 on_chip_fsm			soc (
 							.clk_clk(CLOCK_50),         
 							.reset_reset_n(1'b1),    // Never reset NIOS								
@@ -310,10 +322,11 @@ on_chip_fsm			soc (
 							.otg_hpi_r_export(hpi_r),
 							.otg_hpi_w_export(hpi_w),
 							.otg_hpi_reset_export(hpi_reset),
-							.calibrate_start_export(calibrate_start)
+							.calibrate_start_export(calibrate_start) // calibrate PIO for FSM
 							);
 
 							
+// Finite State Machine for Calibration and Tracking
 fsm					fsm(
 							.CLK(CLOCK_50),
 							.RESET(~DLY_RST_2),
@@ -329,10 +342,9 @@ fsm					fsm(
 							);
 							
 							
-//MOUSE COORD REGES
+// Mouse Coordinate Registers
 register12 topLeftX (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(tlxw || TRtlxw), .dataIn(TLXI), .dataOut(tlx));
 register12 bottomRightX (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(brxw || TRbrxw), .dataIn(BRXI), .dataOut(brx));
-
 register12 topLeftY (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(tlyw || TRtlyw), .dataIn(TLYI), .dataOut(tly));
 register12 bottomRightY (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(bryw || TRbryw), .dataIn(BRYI), .dataOut(bry));
 
@@ -357,7 +369,8 @@ hpi_io_intf       hpi_io_inst(
 							.OTG_CS_N(OTG_CS_N),
 							.OTG_RST_N(OTG_RST_N)		);
 
-
+							
+// Outputs Current Pixel Color
 color_mapper		cm	(
 							.is_ball(isBall),
 							.DrawX(DrawX),
@@ -378,6 +391,7 @@ color_mapper		cm	(
 							);
 							
 							
+// Mouse Cursor Center
 ball					b (
 							.Clk(CLOCK_50),
 							.Reset(~DLY_RST_2),
@@ -389,7 +403,8 @@ ball					b (
 							.is_ball(isBall)
 							);
 							
-
+							
+// Produces Tracking Box
 tracker			track (
 							.CLK(VGA_CTRL_CLK),
 							.RESET(~DLY_RST_2),
@@ -401,7 +416,9 @@ tracker			track (
 							.writeT(writetop), .writeB(writebottom), .Flag(ball_flag),
 							.Trtlxw(TRtlxw), .Trtlyw(TRtlyw), .Trbrxw(TRbrxw), .Trbryw(TRbryw)
 							);
-
+							
+							
+// Outputs Current Pixels Being Tracked
 threshold_checker	tc	(
 							.VGA_R(Read_DATA2[9:0]), .VGA_G({Read_DATA1[14:10],Read_DATA2[14:10]}), .VGA_B(Read_DATA1[9:0]),
 							.DrawX(DrawX), .DrawY(DrawY),
@@ -410,6 +427,7 @@ threshold_checker	tc	(
 							);
 
 
+// Produces Timings for VGA Monitor
 VGA_Controller		u1	(	//	Host Side
 							.oRequest(Read),
 							.iRed(color_red),
@@ -429,12 +447,16 @@ VGA_Controller		u1	(	//	Host Side
 							.DrawX(DrawX),
 							.DrawY(DrawY)				);
 
+							
+// Prevents Glitches
 Reset_Delay			u2	(	.iCLK(CLOCK_50),
 							.iRST(KEY[0]),
 							.oRST_0(DLY_RST_0),
 							.oRST_1(DLY_RST_1),
 							.oRST_2(DLY_RST_2)	);
 
+							
+// Transmits Raw CCD Data
 CCD_Capture			u3	(	.oDATA(mCCD_DATA),
 							.oDVAL(mCCD_DVAL),
 							.oX_Cont(X_Cont),
@@ -448,6 +470,8 @@ CCD_Capture			u3	(	.oDATA(mCCD_DATA),
 							.iCLK(CCD_PIXCLK),
 							.iRST(DLY_RST_1)	);
 
+							
+// Converts Raw CCD Data to Readable RGB
 RAW2RGB				u4	(	.oRed(mCCD_R),
 							.oGreen(mCCD_G),
 							.oBlue(mCCD_B),
@@ -459,6 +483,8 @@ RAW2RGB				u4	(	.oRed(mCCD_R),
 							.iCLK(CCD_PIXCLK),
 							.iRST(DLY_RST_1)	);
 
+							
+// Stores Pixels from Camera in SDRAM
 Sdram_Control_4Port	u6	(	//	HOST Side
 						    .REF_CLK(CLOCK_50),
 						    .RESET_N(1'b1),
@@ -507,7 +533,9 @@ Sdram_Control_4Port	u6	(	//	HOST Side
 						    .DQ(DRAM_DQ),
 				            .DQM({DRAM_UDQM,DRAM_LDQM}),
 							.SDR_CLK(DRAM_CLK)	);
+
 							
+// Configuration Settings for Camera
 I2C_CCD_Config 		u7	(	//	Host Side
 							.iCLK(CLOCK_50),
 							.iRST_N(KEY[1]),
@@ -520,6 +548,8 @@ I2C_CCD_Config 		u7	(	//	Host Side
 							.I2C_SCLK(GPIO_1[14]),
 							.I2C_SDAT(GPIO_1[15])	);
 
+							
+// Flips Picture Vertically
 Mirror_Col			u8	(	//	Input Side
 							.iCCD_R(mCCD_R),
 							.iCCD_G(mCCD_G),

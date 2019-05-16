@@ -2,8 +2,9 @@
        VGA CONTROLLER
 		 
 		 Description:
-		 - Altera's provided VGA controller code, modified to output
-		 only 8 bits, as the ADC can only convert 8 
+		 - Altera's provided VGA controller code
+		 - Produces timing and color output for monitor
+		 - Modified to only output 8 bits of color data
 		 
 		 Authors:
        - Harris M
