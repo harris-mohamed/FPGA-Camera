@@ -454,10 +454,7 @@ set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_RO
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_location_assignment PIN_D5 -to OTG_INT
 set_global_assignment -name QIP_FILE usb_nios_ball/on_chip_fsm/synthesis/on_chip_fsm.qip
-set_global_assignment -name SYSTEMVERILOG_FILE usb_nios_ball/fsm.sv
 set_global_assignment -name QIP_FILE usb_nios_ball/on_chip_with_keyboard_pio/synthesis/on_chip_with_keyboard_pio.qip
-set_global_assignment -name SYSTEMVERILOG_FILE usb_nios_ball/hpi_io_intf.sv
-set_global_assignment -name SYSTEMVERILOG_FILE usb_nios_ball/ball.sv
 set_global_assignment -name SYSTEMVERILOG_FILE vga_color_out.sv
 set_global_assignment -name SOURCE_FILE Sdram_Control_4Port/Sdram_Params.h
 set_global_assignment -name SDC_FILE DE2_CCD.out.sdc
@@ -484,6 +481,4 @@ set_global_assignment -name QIP_FILE my_Stack_RAM.qip
 set_global_assignment -name QIP_FILE Sdram_Control_4Port/my_Sdram_RD_FIFO.qip
 set_global_assignment -name QIP_FILE Sdram_Control_4Port/my_Sdram_WR_FIFO.qip
 set_global_assignment -name QIP_FILE Sdram_Control_4Port/my_Sdram_PLL.qip
-set_global_assignment -name SYSTEMVERILOG_FILE color_mapper.sv
-set_global_assignment -name SYSTEMVERILOG_FILE usb_nios_ball/tracker.sv
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

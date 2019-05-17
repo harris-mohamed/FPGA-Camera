@@ -190,30 +190,6 @@ wire	[9:0]  color_red;
 wire	[9:0]  color_green;
 wire	[9:0]  color_blue;
 
-// Internal Tracker assignments
-wire [11:0] mousex, mousey;
-wire [1:0] hpi_addr;
-wire [15:0] hpi_data_in, hpi_data_out;
-wire [31:0] blue_gain, red_gain, green1_gain, green2_gain, exposure; 
-wire [11:0] tlx, brx, tly, bry;
-reg  [11:0] TLXI, BRXI, TLYI, BRYI;
-wire [11:0] tracktlx, trackbrx, tracktly, trackbry, topx, topy, bottomx, bottomy;
-reg  [9:0]  midX, midY;
-reg  [31:0] hexValue;
-
-wire mouseclick;
-wire hpi_r, hpi_w, hpi_cs, hpi_reset;
-wire isBall;
-wire calibrate_start;
-wire tlxw, brxw, tlyw, bryw;
-wire show_ball, show_box;
-wire writetop, writebottom, ball_flag;
-wire TRtlxw, TRtlyw, TRbrxw, TRbryw;
-wire Above_T;
-wire TRACED, writeTraced, resetTraced;
-wire SHOW_GAIN;
-
-
 //	CAMERA SENSOR 
 assign	CCD_DATA[0]	=	GPIO_1[0];
 assign	CCD_DATA[1]	=	GPIO_1[1];
@@ -242,55 +218,10 @@ SEG7_LUT_8 			u5	(	.oSEG0(HEX0),.oSEG1(HEX1),
 
 							
 // LED assignments							
-assign	LEDR		=	SW;
-assign	LEDG[0]	=	calibrate_start;
-assign	LEDG[1]	=	show_ball;
-assign	LEDG[2]	=	show_box;
-assign	LEDG[5]	=	writetop;
-assign	LEDG[6]	=	writebottom;
-assign	LEDG[7]	=	ball_flag;
+assign	LEDR		=	SW;	// Exposure is toggled through switches
 
-
-// State Machine Assignments
-always
-begin
-	// Box edge regster inputs are mouse coordinates
-	if (show_ball)
-	begin
-		TLXI = mousex;
-		BRXI = mousex;
-		TLYI = mousey;
-		BRYI = mousey;
-	end
-	// Box edge register inputs are from tracking module
-	else if (show_box)
-	begin
-		TLXI = tracktlx;
-		BRXI = trackbrx;
-		TLYI = tracktly;
-		BRYI = trackbry;
-	end
-	// Satisfies always_comb logic
-	else
-	begin
-		TLXI = 12'bx;
-		BRXI = 12'bx;
-		TLYI = 12'bx;
-		BRYI = 12'bx;
-	end
-	
-	// Middle of box coordinates
-	midX = (brx[9:0] - tlx[9:0])/(10'd2);
-	midY = (bry[9:0] - tly[9:0])/(10'd2);
-	
-	// Hex shows exposure, red gain, and frame count when not calibrating
-	if (SHOW_GAIN)
-		hexValue = {SW[11:4],red_gain[7:0],Frame_Cont[15:0]};
-	//if calibrating, hex shows whether or not current object being hovered over will be tracked
-	else
-		hexValue = {topx[9:2], topy[9:2], bottomx[9:2], bottomy[9:2]};
-end
-
+// Assign green LEDs for debugging 
+//assign	LEDG[0]	=	calibrate_start;
 
 // Camera module clock and data
 always@(posedge CLOCK_50)	CCD_MCLK	<=	~CCD_MCLK;
@@ -301,139 +232,14 @@ begin
 	rCCD_LVAL	<=	CCD_LVAL;
 	rCCD_FVAL	<=	CCD_FVAL;
 end
-
-
-// System on Chip Instantiation
-on_chip_fsm			soc (
-							.clk_clk(CLOCK_50),         
-							.reset_reset_n(1'b1),    // Never reset NIOS								
-							.mouse_x_export(mousex), //MOUSE STUFF
-							.mouse_y_export(mousey),
-							.blue_export(blue_gain), //GAIN AND EXPOSURE
-							.red_export(red_gain),
-							.green1_export(green1_gain),
-							.green2_export(green2_gain),
-							.exposure_export(exposure),
-							.mouse_click_export(mouseclick),
-							.otg_hpi_address_export(hpi_addr), //INTERFACE between ezotg and nios
-							.otg_hpi_data_in_port(hpi_data_in),
-							.otg_hpi_data_out_port(hpi_data_out),
-							.otg_hpi_cs_export(hpi_cs),
-							.otg_hpi_r_export(hpi_r),
-							.otg_hpi_w_export(hpi_w),
-							.otg_hpi_reset_export(hpi_reset),
-							.calibrate_start_export(calibrate_start) // calibrate PIO for FSM
-							);
-
+														
 							
-// Finite State Machine for Calibration and Tracking
-fsm					fsm(
-							.CLK(CLOCK_50),
-							.RESET(~DLY_RST_2),
-							.CAL_START(calibrate_start),
-							.CLICK(mouseclick),
-							.SHOW_BALL(show_ball),
-							.SHOW_BOX(show_box),
-							.Tlxw(tlxw), .Brxw(brxw), 
-							.Tlyw(tlyw), .Bryw(bryw),
-							.TLX(tlx), .TLY(tly), .BRX(brx), .BRY(bry),
-							.resetTraced(resetTraced), .writeTraced(writeTraced),
-							.showGain(SHOW_GAIN)
-							);
-							
-							
-// Mouse Coordinate Registers
-register12 topLeftX (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(tlxw || TRtlxw), .dataIn(TLXI), .dataOut(tlx));
-register12 bottomRightX (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(brxw || TRbrxw), .dataIn(BRXI), .dataOut(brx));
-register12 topLeftY (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(tlyw || TRtlyw), .dataIn(TLYI), .dataOut(tly));
-register12 bottomRightY (.CLK(CLOCK_50), .RESET(~DLY_RST_2), .write(bryw || TRbryw), .dataIn(BRYI), .dataOut(bry));
-
-
-// Interface between NIOS II and EZ-OTG chip
-hpi_io_intf       hpi_io_inst(
-							.Clk(CLOCK_50),
-							.Reset(1'b0),
-							// signals connected to NIOS II
-							.from_sw_address(hpi_addr),
-							.from_sw_data_in(hpi_data_in),
-							.from_sw_data_out(hpi_data_out),
-							.from_sw_r(hpi_r),
-							.from_sw_w(hpi_w),
-							.from_sw_cs(hpi_cs),
-							.from_sw_reset(hpi_reset),
-							// signals connected to EZ-OTG chip
-							.OTG_DATA(OTG_DATA),    
-							.OTG_ADDR(OTG_ADDR),    
-							.OTG_RD_N(OTG_RD_N),    
-							.OTG_WR_N(OTG_WR_N),    
-							.OTG_CS_N(OTG_CS_N),
-							.OTG_RST_N(OTG_RST_N)		);
-
-							
-// Outputs Current Pixel Color
-color_mapper		cm	(
-							.is_ball(isBall),
-							.DrawX(DrawX),
-							.DrawY(DrawY),
-							.VGA_R(color_red),
-							.VGA_G(color_green),
-							.VGA_B(color_blue),
+// Produces Timings for VGA Monitor
+VGA_Controller		u1	(	
+							.oRequest(Read),
 							.iRed(Read_DATA2[9:0]),
 							.iGreen({Read_DATA1[14:10],Read_DATA2[14:10]}),
 							.iBlue(Read_DATA1[9:0]),
-							.SHOW_BALL(show_ball),
-							.SHOW_BOX(show_box),
-							.FLAG(ball_flag),
-							.ABOVE_T(Above_T),
-							.tlx(tlx[9:0]), .tly(tly[9:0]), .brx(brx[9:0]), .bry(bry[9:0]),
-							.topx(topx), .topy(topy), .bottomx(bottomx), .bottomy(bottomy),
-							.traced(TRACED)
-							);
-							
-							
-// Mouse Cursor Center
-ball					b (
-							.Clk(CLOCK_50),
-							.Reset(~DLY_RST_2),
-							.frame_clk(VGA_CTRL_CLK),
-							.DrawX(DrawX),
-							.DrawY(DrawY),
-							.mousex(mousex[9:0]),
-							.mousey(mousey[9:0]),
-							.is_ball(isBall)
-							);
-							
-							
-// Produces Tracking Box
-tracker			track (
-							.CLK(VGA_CTRL_CLK),
-							.RESET(~DLY_RST_2),
-							.DrawX(DrawX), .DrawY(DrawY),
-							.Tlx(tlx), .Brx(brx), .Tly(tly), .Bry(bry),
-							.VGA_R(Read_DATA2[9:0]), .VGA_G({Read_DATA1[14:10],Read_DATA2[14:10]}), .VGA_B(Read_DATA1[9:0]),
-							.Topx(topx), .Topy(topy), .Bottomx(bottomx), .Bottomy(bottomy),
-							.Tracktlx(tracktlx), .Trackbrx(trackbrx), .Tracktly(tracktly), .Trackbry(trackbry),
-							.writeT(writetop), .writeB(writebottom), .Flag(ball_flag),
-							.Trtlxw(TRtlxw), .Trtlyw(TRtlyw), .Trbrxw(TRbrxw), .Trbryw(TRbryw)
-							);
-							
-							
-// Outputs Current Pixels Being Tracked
-threshold_checker	tc	(
-							.VGA_R(Read_DATA2[9:0]), .VGA_G({Read_DATA1[14:10],Read_DATA2[14:10]}), .VGA_B(Read_DATA1[9:0]),
-							.DrawX(DrawX), .DrawY(DrawY),
-							.TLX(tlx), .BRX(brx), .TLY(tly), .BRY(bry),
-							.ABOVE_T(Above_T)
-							);
-
-
-// Produces Timings for VGA Monitor
-VGA_Controller		u1	(	//	Host Side
-							.oRequest(Read),
-							.iRed(color_red),
-							.iGreen(color_green),
-							.iBlue(color_blue),
-							//	VGA Side
 							.oVGA_R(VGA_R),
 							.oVGA_G(VGA_G),
 							.oVGA_B(VGA_B),
@@ -441,7 +247,6 @@ VGA_Controller		u1	(	//	Host Side
 							.oVGA_V_SYNC(VGA_VS),
 							.oVGA_SYNC(VGA_SYNC),
 							.oVGA_BLANK(VGA_BLANK),
-							//	Control Signal
 							.iCLK(VGA_CTRL_CLK),
 							.iRST_N(DLY_RST_2),	
 							.DrawX(DrawX),
@@ -536,7 +341,7 @@ Sdram_Control_4Port	u6	(	//	HOST Side
 
 							
 // Configuration Settings for Camera
-I2C_CCD_Config 		u7	(	//	Host Side
+I2C_CCD_Config 		u7	(	
 							.iCLK(CLOCK_50),
 							.iRST_N(KEY[1]),
 							.redG(red_gain),
@@ -544,20 +349,18 @@ I2C_CCD_Config 		u7	(	//	Host Side
 						   .green1G(green1_gain),
 						   .green2G(green2_gain),
 							.iExposure(SW[15:0]),
-							//	I2C Side
 							.I2C_SCLK(GPIO_1[14]),
 							.I2C_SDAT(GPIO_1[15])	);
 
 							
 // Flips Picture Vertically
-Mirror_Col			u8	(	//	Input Side
+Mirror_Col			u8	(	
 							.iCCD_R(mCCD_R),
 							.iCCD_G(mCCD_G),
 							.iCCD_B(mCCD_B),
 							.iCCD_DVAL(mCCD_DVAL_d),
 							.iCCD_PIXCLK(CCD_PIXCLK),
 							.iRST_N(DLY_RST_1),
-							//	Output Side
 							.oCCD_R(sCCD_R),
 							.oCCD_G(sCCD_G),
 							.oCCD_B(sCCD_B),
